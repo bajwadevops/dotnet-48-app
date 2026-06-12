@@ -16,11 +16,6 @@ jobs:
   local-windows-execution:
     needs: cloud-linux-orchestration
     runs-on: [self-hosted, Windows, local-net48-runner]
-    
-    # 🚀 THIS BULLETPROOF LINE ACCEPTS COMMANDS DIRECTLY AND BYPASSES WINDOWS POLICIES
-    defaults:
-      run:
-        shell: powershell -ExecutionPolicy Bypass -Command "Invoke-Expression -Command 'icm (New-Object System.Management.Automation.PSObject) { {0} }'"
 
     steps:
     - name: Checkout Source Code
@@ -33,7 +28,9 @@ jobs:
       uses: NuGet/setup-nuget@v1
 
     - name: Restore Project Packages
+      shell: cmd
       run: nuget restore YourSolution.sln
 
     - name: Compile and Deploy Locally to IIS
+      shell: cmd
       run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="C:\inetpub\wwwroot\your-app"
