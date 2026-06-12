@@ -1,30 +1,48 @@
-local-windows-execution:
-  needs: cloud-linux-orchestration
-  runs-on: [self-hosted, Windows, local-net48-runner]
+name: Hybrid Cloud Linux and Local Windows Pipeline
 
-  steps:
-  - name: Checkout Source Code
-    uses: actions/checkout@v4
+on:
+  push:
+    branches: [ main ]  # Triggers when you push code to your main branch
+  workflow_dispatch:     # Allows you to click a button on GitHub to run it manually
 
-  - name: Setup MSBuild Engine
-    uses: microsoft/setup-msbuild@v2
+jobs:
+  # JOB 1: Initiates execution inside GitHub's free Cloud Linux Runner
+  cloud-linux-orchestration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Initialize Pipeline Workflow
+      run: |
+        echo "Pipeline workflow initialized by cloud-hosted Linux runner."
+        echo "Triggered by user: ${{ github.actor }}"
 
-  - name: Setup NuGet Dependencies
-    uses: NuGet/setup-nuget@v1
+  # JOB 2: Triggered automatically on your physical local Windows machine
+  local-windows-execution:
+    needs: cloud-linux-orchestration  # Waits for the Linux job to finish successfully
+    runs-on: [self-hosted, Windows, local-net48-runner]  # Matches your local runner's tag
 
-  - name: Restore Project Packages
-    shell: cmd
-    run: nuget restore YourSolution.sln
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4  # Downloads your project files onto your machine
 
-  # 1. Compile safely into a local staging directory first
-  - name: Compile to Local Staging Directory
-    shell: cmd
-    run: msbuild YourSolution.sln /p:Configuration=Release /p:OutDir="C:\actions-runner\staging\\" /p:DeployOnBuild=false
+    - name: Setup MSBuild Engine
+      uses: microsoft/setup-msbuild@v2  # Locates your local Windows compiler tools
 
-  # 2. Deploy using native command tools to overwrite locked paths
-  - name: Force Copy to IIS Web Directory
-    shell: cmd
-    run: |
-      xcopy "C:\actions-runner\staging\*.*" "C:\inetpub\wwwroot\your-app\" /Y /E /I
-      xcopy "index.aspx" "C:\inetpub\wwwroot\your-app\" /Y
-      xcopy "web.config" "C:\inetpub\wwwroot\your-app\" /Y
+    - name: Setup NuGet Dependencies
+      uses: NuGet/setup-nuget@v1
+
+    - name: Restore Project Packages
+      shell: cmd  # Bypasses Windows script security policies
+      run: nuget restore YourSolution.sln
+
+    # 1. Compile safely into a local staging directory first to prevent access locks
+    - name: Compile to Local Staging Directory
+      shell: cmd
+      run: msbuild YourSolution.sln /p:Configuration=Release /p:OutDir="C:\actions-runner\staging\\" /p:DeployOnBuild=false
+
+    # 2. Deploy using low-level copy tools to overwrite locked paths and move static pages
+    - name: Force Copy to IIS Web Directory
+      shell: cmd
+      run: |
+        xcopy "C:\actions-runner\staging\*.*" "C:\inetpub\wwwroot\your-app\" /Y /E /I
+        xcopy "index.aspx" "C:\inetpub\wwwroot\your-app\" /Y
+        xcopy "web.config" "C:\inetpub\wwwroot\your-app\" /Y
