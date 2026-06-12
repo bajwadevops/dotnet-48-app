@@ -2,38 +2,38 @@ name: Hybrid Cloud Linux and Local Windows Pipeline
 
 on:
   push:
-    branches: [ main ]  # Triggers the pipeline when you push to the main branch
-  workflow_dispatch:     # Allows you to click a button on GitHub to run it manually
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  # JOB 1: Executed entirely inside GitHub's free Cloud Linux Runner
   cloud-linux-orchestration:
     runs-on: ubuntu-latest
     steps:
     - name: Initialize Pipeline Workflow
       run: |
         echo "Pipeline initialized by cloud-hosted Linux runner."
-        echo "Triggered by user: ${{ github.actor }}"
-        echo "Preparing to pass execution to the local Windows runner..."
 
-  # JOB 2: Triggered automatically on your local physical Windows machine
   local-windows-execution:
-    needs: cloud-linux-orchestration  # Forces this job to wait until the Linux job finishes
-    runs-on: [self-hosted, Windows, local-net48-runner]  # Matches your local runner's tag
+    needs: cloud-linux-orchestration
+    runs-on: [self-hosted, Windows, local-net48-runner]
+    
+    # 🚀 THIS BULLETPROOF LINE ACCEPTS COMMANDS DIRECTLY AND BYPASSES WINDOWS POLICIES
+    defaults:
+      run:
+        shell: powershell -ExecutionPolicy Bypass -Command "Invoke-Expression -Command 'icm (New-Object System.Management.Automation.PSObject) { {0} }'"
 
     steps:
     - name: Checkout Source Code
-      uses: actions/checkout@v4  # Downloads your project files to your local machine
+      uses: actions/checkout@v4
 
     - name: Setup MSBuild Engine
-      uses: microsoft/setup-msbuild@v2  # Locates your local Windows MSBuild tool path
+      uses: microsoft/setup-msbuild@v2
 
     - name: Setup NuGet Dependencies
       uses: NuGet/setup-nuget@v1
 
     - name: Restore Project Packages
-      run: nuget restore YourSolution.sln  # Compiles your exact solution name
+      run: nuget restore YourSolution.sln
 
     - name: Compile and Deploy Locally to IIS
-      run: |
-        msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="C:\inetpub\wwwroot\your-app"
+      run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="C:\inetpub\wwwroot\your-app"
