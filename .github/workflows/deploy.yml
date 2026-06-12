@@ -2,35 +2,38 @@ name: Hybrid Cloud Linux and Local Windows Pipeline
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main ]  # Triggers when you push code to your main branch
+  workflow_dispatch:     # Allows you to click a button on GitHub to run it manually
 
 jobs:
+  # JOB 1: Initiates execution inside GitHub's free Cloud Linux Runner
   cloud-linux-orchestration:
     runs-on: ubuntu-latest
     steps:
     - name: Initialize Pipeline Workflow
       run: |
-        echo "Pipeline initialized by cloud-hosted Linux runner."
+        echo "Pipeline workflow initialized by cloud-hosted Linux runner."
+        echo "Triggered by user: ${{ github.actor }}"
 
+  # JOB 2: Triggered automatically on your physical local Windows machine
   local-windows-execution:
-    needs: cloud-linux-orchestration
-    runs-on: [self-hosted, Windows, local-net48-runner]
+    needs: cloud-linux-orchestration  # Waits for the Linux job to finish successfully
+    runs-on: [self-hosted, Windows, local-net48-runner]  # Matches your local runner's tag
 
     steps:
     - name: Checkout Source Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4  # Downloads your project files onto your machine
 
     - name: Setup MSBuild Engine
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v2  # Locates your local Windows compiler tools
 
     - name: Setup NuGet Dependencies
       uses: NuGet/setup-nuget@v1
 
     - name: Restore Project Packages
-      shell: cmd
+      shell: cmd  # Bypasses Windows script security policies
       run: nuget restore YourSolution.sln
 
     - name: Compile and Deploy Locally to IIS
-      shell: cmd
-      run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="C:\inetpub\wwwroot\your-app"
+      shell: cmd  # Bypasses Windows script security policies
+      run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:PublishProfile=FileSystem /p:PublishUrl="C:\inetpub\wwwroot\your-app"
