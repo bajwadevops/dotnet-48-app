@@ -36,4 +36,4 @@ jobs:
 
     - name: Compile and Deploy Locally to IIS
       shell: cmd  # Bypasses Windows script security policies
-      run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:PublishProfile=FileSystem /p:PublishUrl="C:\inetpub\wwwroot\your-app"
+      run: msbuild YourSolution.sln /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="C:\inetpub\wwwroot\your-app"
